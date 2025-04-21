@@ -1,9 +1,17 @@
+import asyncio
+from typing import List
 import discord
 import os
 from dotenv import load_dotenv
 from discord.ext import commands
+from pymongo import MongoClient
 
 load_dotenv()
+
+uri = os.getenv("MONGO_URI")
+client = MongoClient(uri)
+database = client.get_database(os.getenv("DATABASE"))
+collection = database.get_collection(os.getenv("COLLECTION"))
 
 print("Lancement du bot...")
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
@@ -17,7 +25,6 @@ async def on_ready():
         print(f"Synced : {len(synced)}")
     except Exception as e:
         print(e)
-
 
 @bot.event
 async def on_message(message : discord.Message):
@@ -40,19 +47,38 @@ async def warnguy(interaction: discord.Interaction, member: discord.Member):
     await interaction.response.send_message("Alerte envoyé")
     await member.send("Bot creation in progress...")
 
-@bot.tree.command(name="test", description="Tester les embeds")
-async def warnguy(interaction: discord.Interaction):
+##region Info command
+@bot.tree.command(name="info", description="Tester les embeds")
+async def info(interaction: discord.Interaction, name: str):
     embed = discord.Embed(
-        title="Test title",
-        description="Test description",
+        title=name.capitalize(),
         color=discord.Color.purple()
     )
-    embed.add_field(name="Genshin", value="Créer un bot genshin", inline=False)
-    embed.add_field(name="Wuthering Wave", value="Créer un bot WUWA", inline=False)
-    embed.add_field(name="Minecraft", value="Créer un bot minecraft", inline=False)
-    embed.set_footer(text="Test")
-    embed.set_image(url="https://media.discordapp.net/attachments/1148642561498550353/1356774680559747132/D1_ifa_apti_template_FINI.png?ex=68062e23&is=6804dca3&hm=0a27b729600e05e364c815dd25ccf35b161e332a49e5d31736292c147d4b10fa&=&format=webp&quality=lossless&width=712&height=856")
-
+    picture = load_db(name)
+    embed.set_image(url=picture["url"])
     await interaction.response.send_message(embed=embed)
+
+def load_db(name):
+    try:
+        query = { "name": name.lower() }
+        movie = collection.find_one(query)
+        return movie
+    except Exception as e:
+        raise Exception("Unable to find the document due to the following error: ", e)
+
+@info.autocomplete('name')
+async def name_autocomplete(
+        interaction: discord.Interaction,
+        current: str
+) -> List[discord.app_commands.Choice[str]]:
+    names = []
+    for val in collection.find({'name': {'$ne': None}}):
+        names.append(val["name"].capitalize())
+    return [
+        discord.app_commands.Choice(name=name, value=name)
+        for name in names
+    ]
+
+##endregion
 
 bot.run(os.getenv('DISCORD_TOKEN'))
