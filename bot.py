@@ -38,15 +38,6 @@ async def on_message(message : discord.Message):
         gen_channel = bot.get_channel(883991837570916365)
         await gen_channel.send("Hello there !")
 
-@bot.tree.command(name="youtube", description="Affiche ma chaine YTB")
-async def youtube(interaction: discord.Interaction):
-    await interaction.response.send_message("Voici le lien de ma chaine YTB: ")
-
-@bot.tree.command(name="warnguy", description="Alerter une personne")
-async def warnguy(interaction: discord.Interaction, member: discord.Member):
-    await interaction.response.send_message("Alerte envoyé")
-    await member.send("Bot creation in progress...")
-
 ##region Info command
 @bot.tree.command(name="info", description="Tester les embeds")
 async def info(interaction: discord.Interaction, name: str):
